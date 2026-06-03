@@ -248,7 +248,8 @@ def xs_run(
         str(max_instr),
     ]
     if gcc12Enable and not simFrontend and not version == 2017:
-        base_arguments = base_arguments + ["-r", emuArgR]
+        pass
+        # base_arguments = base_arguments + ["-r", emuArgR]
     if dump_db:
         base_arguments = base_arguments + ["--dump-db"]
     base_arguments = base_arguments + ["-i"]
@@ -445,7 +446,14 @@ def xs_report_ipc(xs_path, gcpt_list, result_queue):
 
 
 def xs_report(
-    gcpt_path, all_gcpt, xs_path, spec_version, isa, num_jobs, json_path=None
+    gcpt_path,
+    all_gcpt,
+    xs_path,
+    spec_version,
+    isa,
+    num_jobs,
+    json_path=None,
+    spec_mode="speed",
 ):
     global expected_checkpoints_num
     global expected_minimal_coverage
@@ -504,22 +512,27 @@ def xs_report(
         ) / np.sum(spec_instr_list[key])
         present_minimal_coverage = min(present_minimal_coverage, spec_weight[key])
     # print()
-    spec_score.get_spec_score(spec_time, spec_version, frequency, spec_weight)
+    spec_score.get_spec_score(
+        spec_time, spec_version, frequency, spec_weight, spec_mode=spec_mode
+    )
     # print(f"SPEC CPU Version: SPEC CPU{spec_version}, {isa}")
     print("=================== Other Information ==================")
     print(f"Checkpoint Version : {os.path.basename(os.path.dirname(gcpt_path))}")
     print(f"DRAMSIM3 Config    : ", end="")  # check dramsim3
-    with open(all_gcpt[0].get_out_path()) as f:
-        flag = True
-        for line in f:
-            if "DRAMSIM3 config" in line:
-                print(line.split("DRAMSIM3 config:")[1].strip())
-                flag = False
-                break
-        if flag:
-            print(
-                "[WARNING] No DRAMSIM3 config found! Please check whether DRAMSIM3 is enabled correctly."
-            )
+    if len(all_gcpt) == 0:
+        print("[WARNING] No finished checkpoint result found.")
+    else:
+        with open(all_gcpt[0].get_out_path()) as f:
+            flag = True
+            for line in f:
+                if "DRAMSIM3 config" in line:
+                    print(line.split("DRAMSIM3 config:")[1].strip())
+                    flag = False
+                    break
+            if flag:
+                print(
+                    "[WARNING] No DRAMSIM3 config found! Please check whether DRAMSIM3 is enabled correctly."
+                )
     print(f"Data Directory     : {os.path.realpath(tasks_dir)}")
     print(
         f"Minimal Coverage   : {present_minimal_coverage:.2f}/{expected_minimal_coverage:.2f}"
@@ -599,6 +612,12 @@ if __name__ == "__main__":
         "--dump-json-path", type=str, help="dump the json path of filter gcpt"
     )
     parser.add_argument("--version", default=2006, type=int, help="SPEC version")
+    parser.add_argument(
+        "--mode",
+        default="speed",
+        choices=["speed", "rate"],
+        help="SPEC2017 mode",
+    )
     parser.add_argument("--isa", default="rv64gcb", type=str, help="ISA version")
     parser.add_argument("--dir", default=None, type=str, help="SPECTasks dir")
     parser.add_argument(
@@ -716,6 +735,7 @@ if __name__ == "__main__":
             args.isa,
             args.jobs,
             args.json_path,
+            args.mode,
         )
     else:
         state_filter = None
