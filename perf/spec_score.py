@@ -278,14 +278,15 @@ def _format_int(value, width):
 def _print_score_table(rows):
     label_width = max(15, *(len(row["name"]) for row in rows))
     print(
-        f"{'':>{label_width}} {'time':>8} {'ref_time':>8} {'score':>6} {'coverage':>8}"
+        f"{'':>{label_width}} {'time':>8} {'ref_time':>8} {'score/GHz':>10} {'score@3GHz':>10} {'coverage':>8}"
     )
     for row in rows:
         print(
             f"{row['name']:>{label_width}} "
             f"{_format_float(row.get('time'), 8)} "
             f"{_format_int(row.get('ref_time'), 8)} "
-            f"{_format_float(row.get('score'), 6)} "
+            f"{_format_float(row.get('score_per_ghz'), 10)} "
+            f"{_format_float(row.get('score'), 10)} "
             f"{_format_float(row.get('coverage'), 8)}"
         )
 
@@ -305,6 +306,7 @@ def _append_suite_rows(rows, benchspec_list, spec_score, spec_weight, frequency)
                     "name": benchspec,
                     "time": None,
                     "ref_time": None,
+                    "score_per_ghz": None,
                     "score": None,
                     "coverage": 0.0,
                 }
@@ -319,7 +321,8 @@ def _append_suite_rows(rows, benchspec_list, spec_score, spec_weight, frequency)
                 "name": benchspec,
                 "time": info["time"],
                 "ref_time": info["ref_time"],
-                "score": score_per_ghz,
+                "score_per_ghz": score_per_ghz,
+                "score": info["score"],
                 "coverage": spec_weight.get(found_name) if spec_weight else None,
             }
         )
@@ -361,7 +364,8 @@ def get_spec_score(spec_time, spec_version, frequency, spec_weight=None, spec_mo
             "name": f"SPECint{spec_version}/GHz",
             "time": None,
             "ref_time": None,
-            "score": geomean_specint_score,
+            "score_per_ghz": geomean_specint_score,
+            "score": geomean_specint_score * frequency,
             "coverage": None,
         }
     )
@@ -375,7 +379,8 @@ def get_spec_score(spec_time, spec_version, frequency, spec_weight=None, spec_mo
             "name": f"SPECfp{spec_version}/GHz",
             "time": None,
             "ref_time": None,
-            "score": geomean_specfp_score,
+            "score_per_ghz": geomean_specfp_score,
+            "score": geomean_specfp_score * frequency,
             "coverage": None,
         }
     )
@@ -384,7 +389,8 @@ def get_spec_score(spec_time, spec_version, frequency, spec_weight=None, spec_mo
             "name": f"SPEC{spec_version}/GHz",
             "time": None,
             "ref_time": None,
-            "score": geomean_score_per_ghz,
+            "score_per_ghz": geomean_score_per_ghz,
+            "score": geomean_score_per_ghz * frequency,
             "coverage": None,
         }
     )
